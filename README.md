@@ -1,4 +1,4 @@
-# CostLog
+# Test01ND
 これはAndroidで動作するアプリケーションです。  
 Android4.0から4.2での動作検証を行っています。
 
