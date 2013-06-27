@@ -27,8 +27,6 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	private FrameLayout mAreaDrawer_Right;
 	private ActionBarDrawerToggle mActionBarDrawerToggle;
 	private LeftDrawerStateListener mCallbackLeftDrawerOpenListener;
-	private float mDown_position;//rightdrawer is use for action-closing
-	private float mUp_position;//rightdrawer is use for action-closing
 	private final float mRange = 100f;//rightdrawer is use for action-closing
 	private float mDownPointX;
 
@@ -53,7 +51,6 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
 				}
 				if(drawerView == mAreaDrawer_Right){
-					mDrawerLayout.setOnTouchListener(null);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Right);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Left);
 				}
@@ -71,53 +68,41 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 				if(drawerView == mAreaDrawer_Right){
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, mAreaDrawer_Left);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN, mAreaDrawer_Right);
-					mDrawerLayout.setOnTouchListener(new OnTouchListener() {
-
-						@Override
-						public boolean onTouch(View v, MotionEvent event) {
-							int action = event.getAction();
-							switch(action){
-							case KeyEvent.ACTION_DOWN:
-								mDownPointX = event.getX();
-								return true;
-							case KeyEvent.ACTION_UP:
-								int uppointX = (int) event.getX();
-								int[] area_rightdrawerXY = new int[2];
-								mAreaDrawer_Right.getLocationInWindow(area_rightdrawerXY);
-								if(mDownPointX< area_rightdrawerXY[0]){
-									mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-									return true;
-								}else{
-									if(uppointX - mDownPointX > 100){
-										mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-										return true;
-									}
-								}
-							}
-							return false;
-							//							return mDrawerLayout.onTouchEvent(event);
-						}
-					});
-					//					mDrawerLayout.setOnKeyListener(new OnKeyListener() {
-					//						
-					//						@Override
-					//						public boolean onKey(View v, int keyCode, KeyEvent event) {
-					//							if (event.getAction() == KeyEvent.ACTION_DOWN) {
-					//								if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
-					//									Log.d("KeyCode","KeyCode:"+ event.getKeyCode());
-					//									if(mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
-					//										mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-					//										return true;
-					//									}
-					//								};
-					//							}
-					//							return false;
-					//						}
-					//					});
 				}
 			}
 		};
 		this.mDrawerLayout.setDrawerListener(mActionBarDrawerToggle);
+		this.mDrawerLayout.setOnTouchListener(null);
+		mDrawerLayout.setOnTouchListener(new OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				if(!mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
+					return false;
+				}
+				int action = event.getAction();
+				switch(action){
+				case KeyEvent.ACTION_DOWN:
+					mDownPointX = event.getX();
+					return true;
+				case KeyEvent.ACTION_UP:
+					int uppointX = (int) event.getX();
+					int[] area_rightdrawerXY = new int[2];
+					Log.e("up", "uppointX"+uppointX+"mDownPointX"+mDownPointX+"area_rightdrawerXY[0]"+area_rightdrawerXY[0]);
+					mAreaDrawer_Right.getLocationInWindow(area_rightdrawerXY);
+					if(mDownPointX< area_rightdrawerXY[0]){
+						mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+						return true;
+					}else{
+						if(uppointX - mDownPointX > mRange){
+							mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		});
 
 	}
 
