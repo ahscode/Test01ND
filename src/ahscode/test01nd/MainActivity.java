@@ -88,7 +88,6 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 				case KeyEvent.ACTION_UP:
 					int uppointX = (int) event.getX();
 					int[] area_rightdrawerXY = new int[2];
-					Log.e("up", "uppointX"+uppointX+"mDownPointX"+mDownPointX+"area_rightdrawerXY[0]"+area_rightdrawerXY[0]);
 					mAreaDrawer_Right.getLocationInWindow(area_rightdrawerXY);
 					if(mDownPointX< area_rightdrawerXY[0]){
 						mDrawerLayout.closeDrawer(mAreaDrawer_Right);
