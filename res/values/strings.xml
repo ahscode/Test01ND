@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Test01ND</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="tag_leftdrawr_fragment">left</string><string name="tag_rightdrawr_fragment">right</string>
+    <string-array name="titlesArray">
+        <item >test00</item>
+        <item >test01</item>
+        <item >test02</item>
+    </string-array>
+    <string name="selected_number">selected_number</string>
+
+</resources>

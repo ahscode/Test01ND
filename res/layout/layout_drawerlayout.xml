@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v4.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/body_DrawerLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <FrameLayout
+        android:id="@+id/FlameLayout_UseContents"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    
+    <!-- When you want to maintain a choice state of Item in ListView, 
+    		please set "?android:attr/activatedBackgroundIndicator" in BackGround of Row.
+			And, please set ListView in "SingleChoiceMode".
+			Finally, please set "setItemChecked(position, true)" with java cord in ListView.-->
+    <FrameLayout
+        android:id="@+id/FlameLayout_UseLeftdrawer"
+        android:layout_width="240dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#F5F5F5" />
+    
+        <FrameLayout
+        android:id="@+id/FlameLayout_UseRightdrawer"
+        android:layout_width="240dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:background="#F5F5F5" />
+</android.support.v4.widget.DrawerLayout>
