@@ -5,7 +5,6 @@ import android.app.Fragment;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -14,11 +13,12 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity
-	implements MyDrawerLeftFragment.MyListViewItemClickListener{
+implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	interface LeftDrawerStateListener{
 		void conactableLeftDrawer(boolean flg);
 	}
@@ -30,8 +30,8 @@ public class MainActivity extends Activity
 	private float mDown_position;//rightdrawer is use for action-closing
 	private float mUp_position;//rightdrawer is use for action-closing
 	private final float mRange = 100f;//rightdrawer is use for action-closing
-	
-	
+	private float mDownPointX;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -42,9 +42,9 @@ public class MainActivity extends Activity
 		mAreaDrawer_Left = (FrameLayout)this.findViewById(R.id.FlameLayout_UseLeftdrawer);
 		mAreaDrawer_Right = (FrameLayout)this.findViewById(R.id.FlameLayout_UseRightdrawer);
 
-		
+
 		this.setSomeFragments(savedInstanceState);
-		
+
 		mActionBarDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.drawable.ic_drawer, 0, 0){
 			@Override
 			public void onDrawerClosed(View drawerView) {
@@ -53,12 +53,17 @@ public class MainActivity extends Activity
 					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
 				}
 				if(drawerView == mAreaDrawer_Right){
+					mDrawerLayout.setOnTouchListener(null);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Right);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Left);
 				}
 			}
 			@Override
 			public void onDrawerOpened(View drawerView) {
+				InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(drawerView.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+				//TODO dialog表示状態ならダイアログフラグメントのほうから制御。
+				//activityのシングルタスクのみこいつは効くはずだからそれは検証しない。
 				if(drawerView == mAreaDrawer_Left){
 					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
 					invalidateOptionsMenu();
@@ -66,33 +71,54 @@ public class MainActivity extends Activity
 				if(drawerView == mAreaDrawer_Right){
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, mAreaDrawer_Left);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN, mAreaDrawer_Right);
+					mDrawerLayout.setOnTouchListener(new OnTouchListener() {
+
+						@Override
+						public boolean onTouch(View v, MotionEvent event) {
+							int action = event.getAction();
+							switch(action){
+							case KeyEvent.ACTION_DOWN:
+								mDownPointX = event.getX();
+								return true;
+							case KeyEvent.ACTION_UP:
+								int uppointX = (int) event.getX();
+								int[] area_rightdrawerXY = new int[2];
+								mAreaDrawer_Right.getLocationInWindow(area_rightdrawerXY);
+								if(mDownPointX< area_rightdrawerXY[0]){
+									mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+									return true;
+								}else{
+									if(uppointX - mDownPointX > 100){
+										mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+										return true;
+									}
+								}
+							}
+							return false;
+							//							return mDrawerLayout.onTouchEvent(event);
+						}
+					});
+					//					mDrawerLayout.setOnKeyListener(new OnKeyListener() {
+					//						
+					//						@Override
+					//						public boolean onKey(View v, int keyCode, KeyEvent event) {
+					//							if (event.getAction() == KeyEvent.ACTION_DOWN) {
+					//								if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
+					//									Log.d("KeyCode","KeyCode:"+ event.getKeyCode());
+					//									if(mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
+					//										mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+					//										return true;
+					//									}
+					//								};
+					//							}
+					//							return false;
+					//						}
+					//					});
 				}
 			}
 		};
 		this.mDrawerLayout.setDrawerListener(mActionBarDrawerToggle);
-		
-		this.mAreaDrawer_Right.setOnTouchListener(new OnTouchListener() {
-			
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				int action = MotionEventCompat.getActionMasked(event);
-				switch (action){
-				case KeyEvent.ACTION_DOWN:
-					mDown_position = event.getX();
-					return true;//continue ACTION_UP
-				case KeyEvent.ACTION_UP:
-					mUp_position = event.getX();
-					if((mUp_position - mDown_position) > 100f){
-						if(mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
-							mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-						}
-					}
-					return false;
-				default:
-				}
-				return false;
-			}
-		});
+
 	}
 
 	/*use toggle.Next configrationchanged */
@@ -114,7 +140,7 @@ public class MainActivity extends Activity
 		this.getMenuInflater().inflate(R.menu.menu_layout_activity, menu);
 		return super.onCreateOptionsMenu(menu);
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if(item.getItemId() == android.R.id.home){
@@ -130,7 +156,7 @@ public class MainActivity extends Activity
 		return super.onOptionsItemSelected(item);
 	}
 
-	
+
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Left) == true){
@@ -158,11 +184,11 @@ public class MainActivity extends Activity
 				mCallbackLeftDrawerOpenListener = (LeftDrawerStateListener)f_contents;
 			}else{
 				this.mCallbackLeftDrawerOpenListener = new LeftDrawerStateListener() {
-					
+
 					@Override
 					public void conactableLeftDrawer(boolean flg) {
 						// do nothing
-						
+
 					}
 				};
 			}
@@ -205,23 +231,23 @@ public class MainActivity extends Activity
 				mCallbackLeftDrawerOpenListener = (LeftDrawerStateListener)f_contents;
 			}else{
 				this.mCallbackLeftDrawerOpenListener = new LeftDrawerStateListener() {
-					
+
 					@Override
 					public void conactableLeftDrawer(boolean flg) {
 						// do nothing
-						
+
 					}
 				};
 			}
 		}
-		
+
 	}
 
 
 	//rightdrawer close
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent event) {
-		if (event.getAction() == KeyEvent.ACTION_DOWN) {
+		if (event.getAction() == KeyEvent.ACTION_UP) {
 			if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
 				Log.d("KeyCode","KeyCode:"+ event.getKeyCode());
 				if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
@@ -237,6 +263,6 @@ public class MainActivity extends Activity
 	@Override
 	public void connectableItemPosition(int position) {
 		this.mDrawerLayout.closeDrawer(mAreaDrawer_Left);
-		
+
 	}
 }
