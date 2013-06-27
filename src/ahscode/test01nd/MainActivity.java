@@ -6,7 +6,6 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,7 +27,7 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	private ActionBarDrawerToggle mActionBarDrawerToggle;
 	private LeftDrawerStateListener mCallbackLeftDrawerOpenListener;
 	private final float mRange = 100f;//rightdrawer is use for action-closing
-	private float mDownPointX;
+	private float mDownPointX;//right drawer is use for action-closing
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -233,14 +232,13 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	public boolean dispatchKeyEvent(KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_UP) {
 			if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
-				Log.d("KeyCode","KeyCode:"+ event.getKeyCode());
 				if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
 					this.mDrawerLayout.closeDrawer(mAreaDrawer_Right);
 					return true;
 				}
 			};
 		}
-		return super.dispatchKeyEvent(event);
+		return super.dispatchKeyEvent(event);//system use
 	}
 
 	/*callback-MyDrawerLeftFragment.MyListViewItemClickListener*/
