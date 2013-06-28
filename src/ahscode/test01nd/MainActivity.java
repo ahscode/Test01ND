@@ -3,9 +3,12 @@ package ahscode.test01nd;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.res.Configuration;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,8 +29,18 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	private FrameLayout mAreaDrawer_Right;
 	private ActionBarDrawerToggle mActionBarDrawerToggle;
 	private LeftDrawerStateListener mCallbackLeftDrawerOpenListener;
-	private final float mRange = 100f;//rightdrawer is use for action-closing
-	private float mDownPointX;//right drawer is use for action-closing
+	protected float mDrawerLayoutTouch_DownX;
+	protected float mRightDrawerTouch_DownX;
+	protected float mRightDrawerTouch_UpX;
+	private float mContentTouch_DownX;
+	private float mContentTouch_UpX;
+	private float mContentTouch_DownY;
+	private float mContentTouch_UpY;
+	private int mDiplayWidth;
+	private int mDiplayHeight;
+	private int mContentsMonitorHeight;
+	private int mContentsMonitorWidth;
+	private int mResultExculedBarsHeight;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +56,7 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 		this.setSomeFragments(savedInstanceState);
 
 		mActionBarDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.drawable.ic_drawer, 0, 0){
+			//TODO control lockmode opening and closing
 			@Override
 			public void onDrawerClosed(View drawerView) {
 				if(drawerView == mAreaDrawer_Left){
@@ -50,6 +64,8 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
 				}
 				if(drawerView == mAreaDrawer_Right){
+					mDrawerLayout.setOnTouchListener(null);
+					mAreaDrawer_Right.setOnTouchListener(null);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Right);
 					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Left);
 				}
@@ -58,8 +74,6 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 			public void onDrawerOpened(View drawerView) {
 				InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
 				imm.hideSoftInputFromWindow(drawerView.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-				//TODO dialog表示状態ならダイアログフラグメントのほうから制御。
-				//activityのシングルタスクのみこいつは効くはずだからそれは検証しない。
 				if(drawerView == mAreaDrawer_Left){
 					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
 					invalidateOptionsMenu();
@@ -70,38 +84,81 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 				}
 			}
 		};
+		
 		this.mDrawerLayout.setDrawerListener(mActionBarDrawerToggle);
-		this.mDrawerLayout.setOnTouchListener(null);
-		mDrawerLayout.setOnTouchListener(new OnTouchListener() {
+	}
+
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		this.mContentsMonitorHeight = this.mDrawerLayout.getHeight();//content size 1038
+		this.mContentsMonitorWidth = this.mDrawerLayout.getWidth();//content size 720
+		Log.d("contentsXY", ""+this.mContentsMonitorWidth+"/"+this.mContentsMonitorHeight);
+		Display display = getWindowManager().getDefaultDisplay();
+        Point p = new Point();
+        display.getSize(p);
+        this.mDiplayWidth = p.x;
+        this.mDiplayHeight = p.y;
+        Log.d("DisplayXY", ""+this.mDiplayWidth+"/"+this.mDiplayHeight);
+        this.mResultExculedBarsHeight = this.mDiplayHeight - this.mContentsMonitorHeight;//TODO  Actionbar and StatusBar
+		super.onWindowFocusChanged(hasFocus);
+	}
+
+	//最上位レイヤータッチイベント
+	@Override
+	public boolean dispatchTouchEvent(MotionEvent ev) {
+		if(!this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
+			return super.dispatchTouchEvent(ev);
+		}
+		this.setRightDrawerTouchEvent();
+		this.setDrawerLayoutTouch();
+		int action = ev.getAction();
+		switch(action){
+		case KeyEvent.ACTION_DOWN:
+			this.mContentTouch_DownX = ev.getX();
+			this.mContentTouch_DownY = ev.getY();
+			break;
+		case KeyEvent.ACTION_UP:
+			this.mContentTouch_UpX = ev.getX();
+			this.mContentTouch_UpY = ev.getY();
+			if((this.mContentTouch_DownY > this.mResultExculedBarsHeight) && (this.mContentTouch_UpY > this.mResultExculedBarsHeight)){
+				if(this.mContentTouch_UpX - this.mContentTouch_DownX> 100){
+					this.mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+					return true;
+				}
+			}
+			break;
+		}
+		return super.dispatchTouchEvent(ev);
+	}
+
+	private void setRightDrawerTouchEvent() {
+		mAreaDrawer_Right.setOnTouchListener(new OnTouchListener() {
 
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
-				if(!mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
-					return false;
-				}
+				return true;// TODO anytime return true  if you want to complete touchevent in this layer
+			}
+		});
+		
+	}
+
+	private void setDrawerLayoutTouch() {
+
+		mDrawerLayout.setOnTouchListener(new OnTouchListener() {
+			
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
 				int action = event.getAction();
-				switch(action){
-				case KeyEvent.ACTION_DOWN:
-					mDownPointX = event.getX();
-					return true;
+				switch (action){
 				case KeyEvent.ACTION_UP:
-					int uppointX = (int) event.getX();
-					int[] area_rightdrawerXY = new int[2];
-					mAreaDrawer_Right.getLocationInWindow(area_rightdrawerXY);
-					if(mDownPointX< area_rightdrawerXY[0]){
-						mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-						return true;
-					}else{
-						if(uppointX - mDownPointX > mRange){
-							mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-							return true;
-						}
-					}
+					mDrawerLayoutTouch_DownX = event.getX();
+					Log.d("drawerLayout_touch_up", "x"+mDrawerLayoutTouch_DownX);
+					mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+					return true;// TODO  touched area out of rightdrawer  it's mean that close rightdrawer so return true 
 				}
 				return false;
 			}
 		});
-
 	}
 
 	/*use toggle.Next configrationchanged */
@@ -227,7 +284,7 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	}
 
 
-	//rightdrawer close
+	//TODO Use BackKey it'mean that rightdrawer close
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_UP) {
@@ -245,6 +302,5 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	@Override
 	public void connectableItemPosition(int position) {
 		this.mDrawerLayout.closeDrawer(mAreaDrawer_Left);
-
 	}
 }
