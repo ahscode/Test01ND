@@ -1,24 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/LinearLayout1"
-    android:layout_width="240dp"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/today_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="todayです"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
     <EditText
-        android:id="@+id/rd_edit00"
+        android:id="@+id/today_ed00"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
     </EditText>
 
     <Button
-        android:id="@+id/rd_btn00"
+        android:id="@+id/today_btn00"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Toast" />
 
     <Button
-        android:id="@+id/rd_btn01"
+        android:id="@+id/today_btn01"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="dialogfragment" />

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <group android:id="@+id/menugroup_setting">
+        <item android:id="@+id/menu_setting_share" android:showAsAction="ifRoom|withText" android:icon="@drawable/ic_menu_share" android:title="share"></item>
+    </group>
+    
+
+</menu>

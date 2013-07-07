@@ -2,14 +2,20 @@
 <resources>
 
     <string name="app_name">Test01ND</string>
-    <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="tag_leftdrawr_fragment">left</string><string name="tag_rightdrawr_fragment">right</string>
+    <string name="tag_leftdrawr_fragment">left</string>
+    <string name="tag_rightdrawr_fragment">right</string>
     <string-array name="titlesArray">
-        <item >test00</item>
-        <item >test01</item>
-        <item >test02</item>
+        <item >Today</item>
+        <item >Setting</item>
     </string-array>
+    <array name="titlesDrawableArray">
+        <item>@drawable/ic_menu_today</item>
+        <item>@drawable/ic_menu_setting</item>
+	</array>
+    
+    <string name="imageDescripiton">busy</string>
     <string name="selected_number">selected_number</string>
+    <string name="selected_tytle">selected_tytlename</string>
+    <string name="leftdrawer_openFlg">leftdrawer_openFlg</string><string name="rightdrawer_openFlg">rightdrawer_openFlg</string>
 
 </resources>

@@ -2,12 +2,13 @@ package ahscode.test01nd;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentTransaction;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -15,98 +16,108 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
-public class MainActivity extends Activity
-implements MyDrawerLeftFragment.MyListViewItemClickListener{
-	interface LeftDrawerStateListener{
-		void conactableLeftDrawer(boolean flg);
+public class MainActivity extends Activity 
+implements MyLeftDrawerFragment.MyListViewItemEventListener{
+
+	interface MyDrawerEventListener{
+		void changeLeftDrawerOpenFlg(boolean leftDrawerOpenflg);
+		void changeRightDrawerOpenFlg(boolean rightDrawerOpenflg);
 	}
+
+	private String mTitle;
+	private String mTag_fragment_leftdrawer;
+	private String mTag_fragment_rightdrawer;
+	private String[] mTitlesArray;
+	private String mBundleKey_selectedNumber;
+	private String mBundleKey_selectedTytle;
 	private DrawerLayout mDrawerLayout;
-	private FrameLayout mAreaDrawer_Left;
-	private FrameLayout mAreaDrawer_Right;
+	private FrameLayout mArea_LeftDrawer;
+	private FrameLayout mArea_RightDrawer;
+	private FrameLayout mArea_Contents;
+	private String mOpened_Tytle;
+	private int mOpen_Num;
+	private MyDrawerEventListener mDrawerCallback;
 	private ActionBarDrawerToggle mActionBarDrawerToggle;
-	private LeftDrawerStateListener mCallbackLeftDrawerOpenListener;
-	protected float mDrawerLayoutTouch_DownX;
-	protected float mRightDrawerTouch_DownX;
-	protected float mRightDrawerTouch_UpX;
-	private float mContentTouch_DownX;
-	private float mContentTouch_UpX;
-	private float mContentTouch_DownY;
-	private float mContentTouch_UpY;
-	private int mDiplayWidth;
-	private int mDiplayHeight;
+	protected boolean mLeftDrawerOpenFlg;
+	protected boolean mRightDrawerOpenFlg;
+	private String mBundleKey_leftDrawerOpneFlg;
+	private String mBundleKey_rightDrawerOpneFlg;
 	private int mContentsMonitorHeight;
-	private int mContentsMonitorWidth;
+	private int mDiplayHeight;
 	private int mResultExculedBarsHeight;
+	private float mContentTouch_DownX;
+	private float mContentTouch_DownY;
+	private float mContentTouch_UpX;
+	private float mContentTouch_UpY;
+	protected float mDrawerLayoutTouch_DownX;
+	private final int  mMoveRange = 100;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		this.getActionBar().setHomeButtonEnabled(true);// use toggle true
-		this.getActionBar().setDisplayHomeAsUpEnabled(true);//use toggle. next onPostCreate
-		setContentView(R.layout.layout_drawerlayout);
-		mDrawerLayout = (DrawerLayout) this.findViewById(R.id.body_DrawerLayout);
-		mAreaDrawer_Left = (FrameLayout)this.findViewById(R.id.FlameLayout_UseLeftdrawer);
-		mAreaDrawer_Right = (FrameLayout)this.findViewById(R.id.FlameLayout_UseRightdrawer);
+		this.getActionBar().setHomeButtonEnabled(true);
+		this.getActionBar().setDisplayHomeAsUpEnabled(true);
+		this.setParams(savedInstanceState);//レイアウト以外のメンバ変数の初期値を設定
+		getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);//call before setContentView
+		this.setLayout();//レイアウトをメンバ変数として設定
 
-
-		this.setSomeFragments(savedInstanceState);
-
-		mActionBarDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.drawable.ic_drawer, 0, 0){
-			//TODO control lockmode opening and closing
-			@Override
-			public void onDrawerClosed(View drawerView) {
-				if(drawerView == mAreaDrawer_Left){
-					invalidateOptionsMenu();
-					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
-				}
-				if(drawerView == mAreaDrawer_Right){
-					mDrawerLayout.setOnTouchListener(null);
-					mAreaDrawer_Right.setOnTouchListener(null);
-					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Right);
-					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mAreaDrawer_Left);
-				}
-			}
-			@Override
-			public void onDrawerOpened(View drawerView) {
-				InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
-				imm.hideSoftInputFromWindow(drawerView.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-				if(drawerView == mAreaDrawer_Left){
-					mCallbackLeftDrawerOpenListener.conactableLeftDrawer(mDrawerLayout.isDrawerOpen(drawerView));
-					invalidateOptionsMenu();
-				}
-				if(drawerView == mAreaDrawer_Right){
-					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, mAreaDrawer_Left);
-					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN, mAreaDrawer_Right);
-				}
-			}
-		};
-		
+		mActionBarDrawerToggle = this.setActionBarToggle();//toggleの作成
 		this.mDrawerLayout.setDrawerListener(mActionBarDrawerToggle);
-	}
 
+		Fragment leftdrawerFragment = this.getFragmentManager().findFragmentByTag(mTag_fragment_leftdrawer);
+		leftdrawerFragment = this.setLeftDrawerFragment(leftdrawerFragment,savedInstanceState);
+		Fragment contentsFragment = this.setContentsFragment(savedInstanceState);
+		Fragment rightdrawerFragment = this.getFragmentManager().findFragmentByTag(mTag_fragment_rightdrawer);
+		rightdrawerFragment = this.setRightDrawerFragment(rightdrawerFragment);
+		//Fragmentのインスタンスだけ生成してあとからまとめてコミット
+		FragmentTransaction ft = this.getFragmentManager().beginTransaction();
+		if(!leftdrawerFragment.isAdded()){
+			ft = ft.replace(mArea_LeftDrawer.getId(), leftdrawerFragment, mTag_fragment_leftdrawer);
+		}
+		if(!contentsFragment.isAdded()){
+			ft = ft.replace(mArea_Contents.getId(), contentsFragment, mOpened_Tytle);
+		}
+		if(!rightdrawerFragment.isAdded()){
+			ft = ft.replace(mArea_RightDrawer.getId(), rightdrawerFragment, mTag_fragment_rightdrawer);
+		}
+		ft.commit();
+		
+	}
+	
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent event) {
+		if (event.getAction() == KeyEvent.ACTION_UP) {
+			if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
+				if(this.mDrawerLayout.isDrawerOpen(mArea_RightDrawer)){
+					this.mDrawerLayout.closeDrawer(mArea_RightDrawer);
+					return true;
+				}
+			};
+		}
+		return super.dispatchKeyEvent(event);//system use
+	}
+	
 	@Override
 	public void onWindowFocusChanged(boolean hasFocus) {
 		this.mContentsMonitorHeight = this.mDrawerLayout.getHeight();//content size 1038
-		this.mContentsMonitorWidth = this.mDrawerLayout.getWidth();//content size 720
-		Log.d("contentsXY", ""+this.mContentsMonitorWidth+"/"+this.mContentsMonitorHeight);
+		this.mDrawerLayout.getWidth();
 		Display display = getWindowManager().getDefaultDisplay();
         Point p = new Point();
         display.getSize(p);
-        this.mDiplayWidth = p.x;
         this.mDiplayHeight = p.y;
-        Log.d("DisplayXY", ""+this.mDiplayWidth+"/"+this.mDiplayHeight);
         this.mResultExculedBarsHeight = this.mDiplayHeight - this.mContentsMonitorHeight;//TODO  Actionbar and StatusBar
-		super.onWindowFocusChanged(hasFocus);
+        super.onWindowFocusChanged(hasFocus);
 	}
 
-	//最上位レイヤータッチイベント
+	//上位レイヤータッチイベント
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent ev) {
-		if(!this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
+		if(!this.mDrawerLayout.isDrawerOpen(mArea_RightDrawer)){
 			return super.dispatchTouchEvent(ev);
 		}
 		this.setRightDrawerTouchEvent();
@@ -121,8 +132,8 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 			this.mContentTouch_UpX = ev.getX();
 			this.mContentTouch_UpY = ev.getY();
 			if((this.mContentTouch_DownY > this.mResultExculedBarsHeight) && (this.mContentTouch_UpY > this.mResultExculedBarsHeight)){
-				if(this.mContentTouch_UpX - this.mContentTouch_DownX> 100){
-					this.mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+				if(this.mContentTouch_UpX - this.mContentTouch_DownX> mMoveRange){
+					this.mDrawerLayout.closeDrawer(mArea_RightDrawer);
 					return true;
 				}
 			}
@@ -132,175 +143,254 @@ implements MyDrawerLeftFragment.MyListViewItemClickListener{
 	}
 
 	private void setRightDrawerTouchEvent() {
-		mAreaDrawer_Right.setOnTouchListener(new OnTouchListener() {
+		mArea_RightDrawer.setOnTouchListener(new OnTouchListener() {
 
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				return true;// TODO anytime return true  if you want to complete touchevent in this layer
 			}
 		});
-		
+
 	}
 
 	private void setDrawerLayoutTouch() {
 
 		mDrawerLayout.setOnTouchListener(new OnTouchListener() {
-			
+
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				int action = event.getAction();
 				switch (action){
 				case KeyEvent.ACTION_UP:
 					mDrawerLayoutTouch_DownX = event.getX();
-					Log.d("drawerLayout_touch_up", "x"+mDrawerLayoutTouch_DownX);
-					mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+					mDrawerLayout.closeDrawer(mArea_RightDrawer);
 					return true;// TODO  touched area out of rightdrawer  it's mean that close rightdrawer so return true 
 				}
 				return false;
 			}
 		});
 	}
-
-	/*use toggle.Next configrationchanged */
-	@Override
-	protected void onPostCreate(Bundle savedInstanceState) {
-		this.mActionBarDrawerToggle.syncState();
-		super.onPostCreate(savedInstanceState);
-	}
-
-	/*use toggle. next onoptionsitemselected*/
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		this.mActionBarDrawerToggle.onConfigurationChanged(newConfig);
-		super.onConfigurationChanged(newConfig);
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		this.getMenuInflater().inflate(R.menu.menu_layout_activity, menu);
-		return super.onCreateOptionsMenu(menu);
-	}
-
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if(item.getItemId() == android.R.id.home){
-			if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
-				this.mDrawerLayout.closeDrawer(mAreaDrawer_Right);
+			if(this.mDrawerLayout.isDrawerOpen(mArea_RightDrawer)){
+				this.mDrawerLayout.closeDrawer(mArea_RightDrawer);
 			}
 			this.mActionBarDrawerToggle.onOptionsItemSelected(item);/*use toggle final*/
 		}else{
-			if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Left)){
+			if(this.mDrawerLayout.isDrawerOpen(mArea_LeftDrawer)){
 				Toast.makeText(this, item.getTitle(), Toast.LENGTH_SHORT).show();
 			}
 		}
 		return super.onOptionsItemSelected(item);
 	}
 
+	@Override
+	protected void onPostCreate(Bundle savedInstanceState) {
+		super.onPostCreate(savedInstanceState);
+		mActionBarDrawerToggle.syncState();
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		mActionBarDrawerToggle.onConfigurationChanged(newConfig);
+	}
+
+	private ActionBarDrawerToggle setActionBarToggle() {
+		mActionBarDrawerToggle = new ActionBarDrawerToggle(
+				this, mDrawerLayout, R.drawable.ic_drawer, 0, 0){
+
+			@Override
+			public void onDrawerClosed(View drawerView) {
+				if(drawerView == mArea_LeftDrawer){
+					mLeftDrawerOpenFlg = false;
+					mDrawerCallback.changeLeftDrawerOpenFlg(mLeftDrawerOpenFlg);
+				}
+				if(drawerView == mArea_RightDrawer){
+					mRightDrawerOpenFlg = false;
+					mDrawerCallback.changeRightDrawerOpenFlg(mRightDrawerOpenFlg);
+					mDrawerLayout.setOnTouchListener(null);
+					mArea_RightDrawer.setOnTouchListener(null);
+					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mArea_RightDrawer);
+					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, mArea_LeftDrawer);
+				}
+				invalidateOptionsMenu();
+			}
+
+			@Override
+			public void onDrawerOpened(View drawerView) {
+				if(drawerView == mArea_LeftDrawer){
+					mLeftDrawerOpenFlg = true;
+					mDrawerCallback.changeLeftDrawerOpenFlg(mLeftDrawerOpenFlg);
+				}
+				if(drawerView == mArea_RightDrawer){
+					mRightDrawerOpenFlg = true;
+					mDrawerCallback.changeRightDrawerOpenFlg(mRightDrawerOpenFlg);
+					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, mArea_LeftDrawer);
+					mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN, mArea_RightDrawer);
+				}
+				invalidateOptionsMenu();
+			}
+
+			@Override
+			public void onDrawerStateChanged(int newState) {
+				super.onDrawerStateChanged(newState);//call first!
+				InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(mDrawerLayout.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+			}
+			
+		};
+		return mActionBarDrawerToggle;
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		this.getMenuInflater().inflate(R.menu.menu_layout_activity, menu);
+		this.getActionBar().setTitle(mTitle);
+		return super.onCreateOptionsMenu(menu);
+	}
 
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
-		if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Left) == true){
+		//TODO flgがtrueのときは表示する。falseのときは非表示にする。
+		if(mLeftDrawerOpenFlg== true){
 			menu.setGroupVisible(R.id.menu_group_mainactivity, true);
-			this.getActionBar().setTitle(this.getResources().getString(R.string.app_name));
+			this.getActionBar().setTitle(this.mTitle);
 		}else{
 			menu.setGroupVisible(R.id.menu_group_mainactivity, false);
 		}
 		return super.onPrepareOptionsMenu(menu);
 	}
 
-	private void setSomeFragments(Bundle savedInstanceState) {
-		String tag_leftdrawrfragment = this.getResources().getString(R.string.tag_leftdrawr_fragment);
-		String tag_rightdrawrfragment = this.getResources().getString(R.string.tag_rightdrawr_fragment);
-		String[] titlesArray = this.getResources().getStringArray(R.array.titlesArray);
-		if(savedInstanceState == null){
-			int default_number = 0;
-			Fragment f_left = MyDrawerLeftFragment.newInstance();
-			Bundle b = new Bundle();
-			b.putInt(this.getResources().getString(R.string.selected_number), default_number);
-			f_left.setArguments(b);
-			Fragment f_right = MyDrawerRightFragment.newInstance();
-			Fragment f_contents = MyContents00Fragment.newInstance();
-			if(f_contents instanceof LeftDrawerStateListener){
-				mCallbackLeftDrawerOpenListener = (LeftDrawerStateListener)f_contents;
-			}else{
-				this.mCallbackLeftDrawerOpenListener = new LeftDrawerStateListener() {
-
-					@Override
-					public void conactableLeftDrawer(boolean flg) {
-						// do nothing
-
-					}
-				};
-			}
-			this.getFragmentManager().beginTransaction()
-			.replace(R.id.FlameLayout_UseLeftdrawer, f_left, tag_leftdrawrfragment)
-			.replace(R.id.FlameLayout_UseRightdrawer, f_right, tag_rightdrawrfragment)
-			.replace(R.id.FlameLayout_UseContents, f_contents, titlesArray[default_number])
-			.commit();
-		}else{
-			Fragment f_left = this.getFragmentManager().findFragmentByTag(tag_leftdrawrfragment);
-			if(f_left == null){
-				f_left = MyDrawerLeftFragment.newInstance();
-			}
-			if(!(f_left.isAdded())){
-				f_left.setArguments(savedInstanceState);
-				this.getFragmentManager().beginTransaction()
-				.replace(R.id.FlameLayout_UseLeftdrawer, f_left, tag_leftdrawrfragment)
-				.commit();
-			}
-			Fragment f_right = this.getFragmentManager().findFragmentByTag(tag_rightdrawrfragment);
-			if(f_right == null){
-				f_right = MyDrawerRightFragment.newInstance();
-			}
-			if(!(f_right.isAdded())){
-				this.getFragmentManager().beginTransaction()
-				.replace(R.id.FlameLayout_UseRightdrawer, f_right, tag_rightdrawrfragment)
-				.commit();
-			}
-			Fragment f_contents = this.getFragmentManager().findFragmentByTag(
-					titlesArray[savedInstanceState.getInt(this.getResources().getString(R.string.selected_number))]);
-			if(f_contents == null){
-				f_contents = MyContents00Fragment.newInstance();
-			}
-			if(!(f_contents.isAdded())){
-				this.getFragmentManager().beginTransaction()
-				.replace(R.id.FlameLayout_UseContents, f_contents, this.getResources().getString(R.string.selected_number))
-				.commit();
-			}
-			if(f_contents instanceof LeftDrawerStateListener){
-				mCallbackLeftDrawerOpenListener = (LeftDrawerStateListener)f_contents;
-			}else{
-				this.mCallbackLeftDrawerOpenListener = new LeftDrawerStateListener() {
-
-					@Override
-					public void conactableLeftDrawer(boolean flg) {
-						// do nothing
-
-					}
-				};
-			}
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		if(outState == null){
+			outState = new Bundle();
 		}
-
+		outState.putInt(mBundleKey_selectedNumber, mOpen_Num);
+		outState.putString(mBundleKey_selectedTytle, mOpened_Tytle);
+		outState.putBoolean(mBundleKey_leftDrawerOpneFlg, mLeftDrawerOpenFlg);
+		outState.putBoolean(mBundleKey_rightDrawerOpneFlg, mRightDrawerOpenFlg);
 	}
 
-
-	//TODO Use BackKey it'mean that rightdrawer close
 	@Override
-	public boolean dispatchKeyEvent(KeyEvent event) {
-		if (event.getAction() == KeyEvent.ACTION_UP) {
-			if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
-				if(this.mDrawerLayout.isDrawerOpen(mAreaDrawer_Right)){
-					this.mDrawerLayout.closeDrawer(mAreaDrawer_Right);
-					return true;
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
+		if(savedInstanceState ==null){
+			return;
+		}
+		mOpen_Num = savedInstanceState.getInt(mBundleKey_selectedNumber);
+		mOpened_Tytle = savedInstanceState.getString(mBundleKey_selectedTytle);
+		mLeftDrawerOpenFlg = savedInstanceState.getBoolean(mBundleKey_leftDrawerOpneFlg);
+		mRightDrawerOpenFlg = savedInstanceState.getBoolean(mBundleKey_rightDrawerOpneFlg);
+	}
+
+	private Fragment setRightDrawerFragment(Fragment rightdrawerFragment) {
+		if(rightdrawerFragment == null){
+			rightdrawerFragment = MyRightDrawerFragment.newInstance();
+		}
+		return rightdrawerFragment;
+	}
+
+	private Fragment setLeftDrawerFragment(Fragment leftdrawerFragment, Bundle savedInstanceState) {
+		if(leftdrawerFragment == null){
+			leftdrawerFragment = MyLeftDrawerFragment.newInstance();
+			if(savedInstanceState == null){
+				Bundle b = new Bundle();
+				b.putInt(mBundleKey_selectedNumber, mOpen_Num);
+				b.putString(mBundleKey_selectedTytle, mOpened_Tytle);
+				leftdrawerFragment.setArguments(b);
+			}else{
+				mOpen_Num = savedInstanceState.getInt(mBundleKey_selectedNumber);
+				mOpened_Tytle = savedInstanceState.getString(mBundleKey_selectedTytle);
+				leftdrawerFragment.setArguments(savedInstanceState);
+			}
+		}
+		return leftdrawerFragment;
+	}
+
+	private void setLayout() {
+		this.setContentView(R.layout.layout_drawerlayout);
+		mArea_LeftDrawer = (FrameLayout)this.findViewById(R.id.FlameLayout_UseLeftdrawer);
+		mArea_RightDrawer = (FrameLayout)this.findViewById(R.id.FlameLayout_UseRightdrawer);
+		mArea_Contents = (FrameLayout)this.findViewById(R.id.FlameLayout_UseContents);
+		mDrawerLayout = (DrawerLayout)this.findViewById(R.id.body_DrawerLayout);
+	}
+
+	private void setParams(Bundle savedInstanceState) {
+		mTitle = this.getResources().getString(R.string.app_name);
+		mTag_fragment_leftdrawer = this.getResources().getString(R.string.tag_leftdrawr_fragment);
+		mTag_fragment_rightdrawer = this.getResources().getString(R.string.tag_rightdrawr_fragment);
+		mTitlesArray = this.getResources().getStringArray(R.array.titlesArray);
+		mBundleKey_selectedNumber = this.getResources().getString(R.string.selected_number);
+		mBundleKey_selectedTytle = this.getResources().getString(R.string.selected_tytle);
+		mBundleKey_leftDrawerOpneFlg = this.getResources().getString(R.string.leftdrawer_openFlg);
+		mBundleKey_rightDrawerOpneFlg = this.getResources().getString(R.string.rightdrawer_openFlg);
+		if(savedInstanceState == null){
+			mOpen_Num = 0;
+			mOpened_Tytle = mTitlesArray[mOpen_Num];
+			mLeftDrawerOpenFlg = false;
+			mRightDrawerOpenFlg = false;
+		}else{
+			mOpen_Num = savedInstanceState.getInt(mBundleKey_selectedNumber);
+			mOpened_Tytle = savedInstanceState.getString(mBundleKey_selectedTytle);
+			mLeftDrawerOpenFlg = savedInstanceState.getBoolean(mBundleKey_leftDrawerOpneFlg);
+			mRightDrawerOpenFlg = savedInstanceState.getBoolean(mBundleKey_rightDrawerOpneFlg);
+		}
+	}
+
+	//callback-MyLeftDrawerFragment.MyListViewItemEventListener
+	@Override
+	public void connectItemClickEvent(Bundle bundle) {
+		mLeftDrawerOpenFlg = false;
+		this.invalidateOptionsMenu();
+		Fragment f = this.setContentsFragment(bundle);
+		if(!f.isAdded()){
+			this.getFragmentManager().beginTransaction()
+			.replace(mArea_Contents.getId(), f,mOpened_Tytle)
+			.commit();
+		}
+		mDrawerLayout.closeDrawer(mArea_LeftDrawer);
+	}
+
+	private Fragment setContentsFragment(Bundle bundle) {
+		if(bundle == null){
+			bundle = new Bundle();
+			bundle.putInt(mBundleKey_selectedNumber, mOpen_Num);
+			bundle.putString(mBundleKey_selectedTytle, mOpened_Tytle);
+		}else{
+			mOpen_Num = bundle.getInt(mBundleKey_selectedNumber);
+			mOpened_Tytle = bundle.getString(mBundleKey_selectedTytle);
+		}
+		Fragment f = this.getFragmentManager().findFragmentByTag(mOpened_Tytle);
+		if(f == null){
+			switch(mOpen_Num){
+			case 0:	f = MyTodayFragment.newInstance();break;
+			case 1:f = MySettingFragment.newInstance();break;
+			default:new Exception("swithcの中に値が存在しません");
+			}
+			f.setArguments(bundle);
+		}
+		if(f instanceof MainActivity.MyDrawerEventListener){
+			mDrawerCallback = (MainActivity.MyDrawerEventListener)f;
+		}else{
+			mDrawerCallback = new MyDrawerEventListener() {
+
+				@Override
+				public void changeLeftDrawerOpenFlg(boolean flg) {
+					//do nothing
+				}
+
+				@Override
+				public void changeRightDrawerOpenFlg(boolean rightDrawerOpenflg) {
+					//do nothing
 				}
 			};
 		}
-		return super.dispatchKeyEvent(event);//system use
+		return f;
 	}
 
-	/*callback-MyDrawerLeftFragment.MyListViewItemClickListener*/
-	@Override
-	public void connectableItemPosition(int position) {
-		this.mDrawerLayout.closeDrawer(mAreaDrawer_Left);
-	}
+
 }

@@ -7,7 +7,12 @@
     <ListView
         android:id="@+id/ld_listview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="wrap_content"
+        android:choiceMode="singleChoice"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dp"
+         >
+
     </ListView>
 
 </LinearLayout>

@@ -7,7 +7,8 @@
     <FrameLayout
         android:id="@+id/FlameLayout_UseContents"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent" >
+        </FrameLayout>
     
     <!-- When you want to maintain a choice state of Item in ListView, 
     		please set "?android:attr/activatedBackgroundIndicator" in BackGround of Row.
@@ -18,12 +19,14 @@
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#F5F5F5" />
+        android:background="#F5F5F5">
+	</FrameLayout>
     
-        <FrameLayout
+	<FrameLayout
         android:id="@+id/FlameLayout_UseRightdrawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:background="#F5F5F5" />
+        android:background="#F5F5F5">
+        </FrameLayout>
 </android.support.v4.widget.DrawerLayout>
